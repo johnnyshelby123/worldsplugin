@@ -1,0 +1,77 @@
+# TravellerPlus Configuration v1.2
+
+# --- Global Settings ---
+
+# Optional: Define the world where players spawn when they join the server for the FIRST time.
+# If not set, the server's default spawn behavior is used.
+# World name MUST be lowercase and match the world folder name.
+spawn-world: world
+
+# List of worlds players are allowed to travel to using /travel
+# This list primarily controls tab-completion and initial command validation.
+# Ensure worlds listed here also have entries under 'world-settings'.
+# World names MUST be lowercase and match the world folder name.
+allowed-worlds:
+  - world
+  - world_nether
+  - world_the_end
+  # - private
+  # - creative
+  # - arena
+
+# --- Per-World Settings ---
+# Define specific behaviors for each world.
+# World names MUST be lowercase and match the world folder name.
+world-settings:
+  world:
+    separate-inventory: false # Does this world use a separate inventory & ender chest?
+    op-only: false            # Can only OPs travel to this world using /travel?
+    respawn-in-world: false   # If a player dies here, do they respawn in this world?
+    difficulty: EASY          # World difficulty (PEACEFUL, EASY, NORMAL, HARD). Leave blank/remove for server default.
+    default-gamemode: SURVIVAL # Default gamemode on entry (SURVIVAL, CREATIVE, ADVENTURE, SPECTATOR). Leave blank/remove for no change.
+  world_nether:
+    separate-inventory: false
+    op-only: false
+    respawn-in-world: true    # Example: Respawn in nether if you die there
+    difficulty: NORMAL
+    default-gamemode: SURVIVAL
+  world_the_end:
+    separate-inventory: false
+    op-only: false
+    respawn-in-world: false   # Example: Respawn at default spawn if you die in the end
+    difficulty: NORMAL
+    default-gamemode: SURVIVAL
+  # private: # Example of a private world
+  #   separate-inventory: true
+  #   op-only: true
+  #   respawn-in-world: true
+  #   difficulty: HARD
+  #   default-gamemode: SURVIVAL
+  # creative: # Example of a creative world
+  #   separate-inventory: true
+  #   op-only: false
+  #   respawn-in-world: false
+  #   difficulty: PEACEFUL
+  #   default-gamemode: CREATIVE
+  # arena: # Example for a PvP arena
+  #   separate-inventory: true
+  #   op-only: false
+  #   respawn-in-world: true
+  #   difficulty: NORMAL
+  #   default-gamemode: ADVENTURE
+
+# --- Custom Spawn Points (Optional) ---
+# If a world is listed here, players will teleport to these exact coordinates when using /travel.
+# Otherwise, they will teleport to a safe location near the world's spawn point.
+#custom-spawn-points:
+#  world_nether: # Example: Set a specific spot in the nether hub
+#    x: 0.5
+#    y: 65.0
+#    z: 0.5
+#    yaw: 0.0   # Optional, defaults to 0
+#    pitch: 0.0 # Optional, defaults to 0
+#  resource_world: # Another example
+#    x: 100.5
+#    y: 70.0
+#    z: -50.5
+

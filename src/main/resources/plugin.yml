@@ -1,0 +1,43 @@
+name: TravellerPlus
+version: 1.3 # Increment version for sign protection
+main: com.travelplus.Main
+api-version: "1.21"
+description: Allows players to travel between configured worlds, create new worlds, use protected travel signs, and manage inventories.
+authors: [Manus]
+commands:
+  travel:
+    description: Teleports the player to a specified world.
+    usage: /<command> <world_name>
+    # permission: travellerplus.travel # Default is true
+  createworld:
+    description: Creates a new world and adds it to the travel list.
+    usage: /<command> <world_name> [NORMAL|NETHER|VOID|ARENA]
+    permission: travellerplus.createworld
+  tpreload: # Reload command
+    description: Reloads the TravellerPlus configuration file.
+    usage: /<command>
+    permission: travellerplus.reload
+  gettravelsign: # New command for signs
+    description: Gives the player a special sign to travel to a specified world.
+    usage: /<command> <world_name>
+    permission: travellerplus.gettravelsign
+permissions:
+  travellerplus.travel:
+    description: Allows usage of the /travel command.
+    default: true
+  travellerplus.createworld:
+    description: Allows usage of the /createworld command.
+    default: op
+  travellerplus.reload:
+    description: Allows usage of the /tpreload command.
+    default: op
+  travellerplus.gettravelsign:
+    description: Allows usage of the /gettravelsign command.
+    default: op
+  travellerplus.countdown.bypass:
+    description: Allows instant teleportation without the countdown.
+    default: op
+  travellerplus.sign.break: # Permission to break travel signs
+    description: Allows breaking of special TravelPlus signs.
+    default: op
+
