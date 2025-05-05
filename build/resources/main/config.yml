@@ -1,4 +1,4 @@
-# TravellerPlus Configuration v1.3
+# TravellerPlus Configuration v1.4 (Added keep-inventory)
 
 # --- Global Settings ---
 
@@ -31,6 +31,7 @@ world-settings:
     default-gamemode: SURVIVAL # Default gamemode on entry (SURVIVAL, CREATIVE, ADVENTURE, SPECTATOR). Leave blank/remove for no change.
     pvp: true                 # Is Player vs Player combat enabled in this world? (Default: true)
     spawn-mobs: true          # Are hostile and passive mobs allowed to spawn naturally? (Default: true)
+    keep-inventory: false     # Should players keep inventory on death in this world? (Default: false)
   world_nether:
     separate-inventory: false
     op-only: false
@@ -39,6 +40,7 @@ world-settings:
     default-gamemode: SURVIVAL
     pvp: true
     spawn-mobs: true
+    keep-inventory: false
   world_the_end:
     separate-inventory: false
     op-only: false
@@ -47,6 +49,7 @@ world-settings:
     default-gamemode: SURVIVAL
     pvp: true
     spawn-mobs: true
+    keep-inventory: false
   # private: # Example of a private world
   #   separate-inventory: true
   #   op-only: true
@@ -55,6 +58,7 @@ world-settings:
   #   default-gamemode: SURVIVAL
   #   pvp: false
   #   spawn-mobs: false
+  #   keep-inventory: true # Example: Keep inventory in private world
   # creative: # Example of a creative world
   #   separate-inventory: true
   #   op-only: false
@@ -63,6 +67,7 @@ world-settings:
   #   default-gamemode: CREATIVE
   #   pvp: false
   #   spawn-mobs: true
+  #   keep-inventory: true # Example: Keep inventory in creative world
   # arena: # Example for a PvP arena
   #   separate-inventory: true
   #   op-only: false
@@ -71,6 +76,7 @@ world-settings:
   #   default-gamemode: ADVENTURE
   #   pvp: true
   #   spawn-mobs: false
+  #   keep-inventory: true # Example: Keep inventory in arena
 
 # --- Custom Spawn Points (Optional) ---
 # If a world is listed here, players will teleport to these exact coordinates when using /travel (if no last location exists).

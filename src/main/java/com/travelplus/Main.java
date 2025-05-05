@@ -221,6 +221,7 @@ public class Main extends JavaPlugin {
                     boolean respawnInWorld = worldSection.getBoolean("respawn-in-world", WorldConfig.DEFAULTS.respawnInWorld()); // Still load, though respawn logic changed
                     boolean pvp = worldSection.getBoolean("pvp", WorldConfig.DEFAULTS.pvp());
                     boolean spawnMobs = worldSection.getBoolean("spawn-mobs", WorldConfig.DEFAULTS.spawnMobs());
+                    boolean keepInventory = worldSection.getBoolean("keep-inventory", WorldConfig.DEFAULTS.keepInventory()); // Added keep-inventory
 
                     Difficulty difficulty = WorldConfig.DEFAULTS.difficulty();
                     String difficultyStr = worldSection.getString("difficulty");
@@ -228,7 +229,7 @@ public class Main extends JavaPlugin {
                         try {
                             difficulty = Difficulty.valueOf(difficultyStr.toUpperCase());
                         } catch (IllegalArgumentException e) {
-                            getLogger().warning("[TravellerPlus Diagnostics] Invalid difficulty value \'" + difficultyStr + "\' for world \'" + worldNameKey + "\". Using server default.");
+                            getLogger().warning("[TravellerPlus Diagnostics] Invalid difficulty value \'" + difficultyStr + "\' for world \'" + worldNameKey + "\'. Using server default.");
                         }
                     }
 
@@ -238,17 +239,17 @@ public class Main extends JavaPlugin {
                         try {
                             defaultGamemode = GameMode.valueOf(gamemodeStr.toUpperCase());
                         } catch (IllegalArgumentException e) {
-                            getLogger().warning("[TravellerPlus Diagnostics] Invalid default-gamemode value \'" + gamemodeStr + "\' for world \'" + worldNameKey + "\". Using no change.");
+                            getLogger().warning("[TravellerPlus Diagnostics] Invalid default-gamemode value \'" + gamemodeStr + "\' for world \'" + worldNameKey + "\'. Using no change.");
                         }
                     }
 
-                    WorldConfig loadedConfig = new WorldConfig(separateInv, opOnly, respawnInWorld, difficulty, defaultGamemode, pvp, spawnMobs);
+                    WorldConfig loadedConfig = new WorldConfig(separateInv, opOnly, respawnInWorld, difficulty, defaultGamemode, pvp, spawnMobs, keepInventory); // Added keepInventory
                     worldSettings.put(worldNameLower, loadedConfig);
                     getLogger().info("[TravellerPlus Diagnostics] Loaded settings for world: " + worldNameLower +
                                        " (SeparateInv: " + separateInv + ", OpOnly: " + opOnly + ", RespawnInWorld: " + respawnInWorld +
                                        ", Difficulty: " + (difficulty != null ? difficulty.name() : "DEFAULT") +
                                        ", Gamemode: " + (defaultGamemode != null ? defaultGamemode.name() : "NONE") +
-                                       ", PVP: " + pvp + ", SpawnMobs: " + spawnMobs + ")");
+                                       ", PVP: " + pvp + ", SpawnMobs: " + spawnMobs + ", KeepInv: " + keepInventory + ")"); // Added KeepInv
 
                     // Settings are now applied later in onEnable or after reload command
 
@@ -282,7 +283,7 @@ public class Main extends JavaPlugin {
                         customSpawnPoints.put(worldNameLower, new Location(null, x, y, z, yaw, pitch));
                         getLogger().info("[TravellerPlus Diagnostics] Loaded custom spawn for: " + worldNameLower);
                     } catch (Exception e) {
-                        getLogger().warning("[TravellerPlus Diagnostics] Error reading custom spawn coords for world \'" + worldNameKey + "\". Skipping. Error: " + e.getMessage());
+                        getLogger().warning("[TravellerPlus Diagnostics] Error reading custom spawn coords for world \'" + worldNameKey + "\'. Skipping. Error: " + e.getMessage());
                     }
                 }
             }
@@ -323,25 +324,50 @@ public class Main extends JavaPlugin {
                      world.setSpawnFlags(config.spawnMobs(), config.spawnMobs());
                      getLogger().info(" -> Set monster/animal spawn flags to " + config.spawnMobs());
                  } catch (NoSuchMethodError e) {
-                     world.setMonsterSpawnLimit(config.spawnMobs() ? world.getMonsterSpawnLimit() : 0);
-                     world.setAnimalSpawnLimit(config.spawnMobs() ? world.getAnimalSpawnLimit() : 0);
-                     getLogger().warning(" -> Using fallback method to set mob spawning to " + config.spawnMobs() + " (setSpawnFlags not available)");
+                     // Fallback for older Bukkit versions that might not have setSpawnFlags
+                     world.setMonsterSpawnLimit(config.spawnMobs() ? world.getMonsterSpawnLimit() : 0); // Crude fallback
+                     world.setAnimalSpawnLimit(config.spawnMobs() ? world.getAnimalSpawnLimit() : 0); // Crude fallback
+                     getLogger().warning(" -> Could not use setSpawnFlags (likely older server version). Used spawn limit fallback for mob spawning.");
                  }
             }
 
+            // Note: Default Gamemode is applied on player world change in PlayerListener
+            // Note: Separate Inventory is handled on player world change in PlayerListener
+            // Note: Keep Inventory is handled on player death in PlayerListener
+
         } else {
-            // Don't log warning here, as this method is called for all loaded worlds,
-            // including potentially default ones not in our config.
-            // getLogger().warning("Tried to apply settings to world \'" + worldNameLower + "\', but it is not loaded.");
+            getLogger().warning("Attempted to apply settings to world \'" + worldNameLower + "\', but it is not loaded.");
         }
     }
 
-    // --- Getters ---
+    // --- Getter methods for configuration ---
 
     public List<String> getAllowedWorlds() {
-        return allowedWorlds != null ? new ArrayList<>(allowedWorlds) : new ArrayList<>();
+        return new ArrayList<>(allowedWorlds); // Return a copy
     }
 
+    public Map<String, Location> getCustomSpawnPoints() {
+        return new HashMap<>(customSpawnPoints); // Return a copy
+    }
+
+    @Nullable
+    public String getSpawnWorldName() {
+        return spawnWorldName;
+    }
+
+    public TeleportManager getTeleportManager() {
+        return teleportManager;
+    }
+
+    public LocationManager getLocationManager() {
+        return locationManager;
+    }
+
+    public InventoryManager getInventoryManager() {
+        return inventoryManager;
+    }
+
+    // Helper to get world config, returning defaults if not specified
     @NotNull
     public WorldConfig getWorldConfig(String worldNameLower) {
         return worldSettings.getOrDefault(worldNameLower.toLowerCase(), WorldConfig.DEFAULTS);
@@ -355,14 +381,8 @@ public class Main extends JavaPlugin {
         return getWorldConfig(worldNameLower).opOnly();
     }
 
-    // This setting is no longer directly used by respawn logic but kept for potential future use
-    public boolean shouldRespawnInWorld(String worldNameLower) {
-        return getWorldConfig(worldNameLower).respawnInWorld();
-    }
-
-    @Nullable
-    public Difficulty getDifficultyForWorld(String worldNameLower) {
-        return getWorldConfig(worldNameLower).difficulty();
+    public boolean isPvpEnabled(String worldNameLower) {
+        return getWorldConfig(worldNameLower).pvp();
     }
 
     @Nullable
@@ -370,33 +390,9 @@ public class Main extends JavaPlugin {
         return getWorldConfig(worldNameLower).defaultGamemode();
     }
 
-    public boolean isPvpEnabled(String worldNameLower) {
-        return getWorldConfig(worldNameLower).pvp();
-    }
-
-    public boolean areMobsSpawning(String worldNameLower) {
-        return getWorldConfig(worldNameLower).spawnMobs();
-    }
-
-    public Map<String, Location> getCustomSpawnPoints() {
-        return new HashMap<>(customSpawnPoints);
-    }
-
-    public InventoryManager getInventoryManager() {
-        return inventoryManager;
-    }
-
-    public TeleportManager getTeleportManager() {
-        return teleportManager;
-    }
-
-    public LocationManager getLocationManager() {
-        return locationManager;
-    }
-
-    @Nullable
-    public String getSpawnWorldName() {
-        return spawnWorldName;
+    // Added getter for keepInventory
+    public boolean isKeepInventoryEnabled(String worldNameLower) {
+        return getWorldConfig(worldNameLower).keepInventory();
     }
 }
 

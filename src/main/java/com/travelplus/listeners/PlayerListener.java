@@ -135,6 +135,30 @@ public class PlayerListener implements Listener {
         }
     }
 
+    // Added handler for Keep Inventory on Death
+    @EventHandler(priority = EventPriority.HIGH) // Run before potential drops happen but after other plugins might modify
+    public void onPlayerDeath(PlayerDeathEvent event) {
+        Player player = event.getEntity();
+        World world = player.getWorld();
+        String worldNameLower = world.getName().toLowerCase();
+
+        // Check if keepInventory is enabled for this world in the config
+        if (plugin.isKeepInventoryEnabled(worldNameLower)) {
+            // Set Bukkit's keepInventory flag for the event
+            event.setKeepInventory(true);
+            // Clear the drops list to prevent items from dropping anyway
+            event.getDrops().clear();
+            // Optional: Set keepLevel to true if desired (usually goes with keepInventory)
+            event.setKeepLevel(true);
+            // Optional: Clear dropped EXP
+            event.setDroppedExp(0);
+
+            plugin.getLogger().info("Keep inventory applied for player " + player.getName() + " dying in world " + world.getName());
+        } else {
+            plugin.getLogger().fine("Keep inventory is not enabled for world " + world.getName() + ". Default death behavior applies.");
+        }
+    }
+
     // Handle respawn location - REVISED TO FULLY OVERRIDE DEFAULTS
     @EventHandler(priority = EventPriority.HIGHEST) // Run late to allow other plugins (like bed respawn) to set it first
     public void onPlayerRespawn(PlayerRespawnEvent event) {
