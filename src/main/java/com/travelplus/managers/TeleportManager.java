@@ -33,7 +33,7 @@ public class TeleportManager implements org.bukkit.event.Listener { // Implement
             cancelTeleport(player, false); // Don't send cancellation message if starting a new one
         }
 
-        // Check bypass permission (Step 008)
+        // Check bypass permission
         if (player.hasPermission(BYPASS_PERMISSION)) {
             plugin.getLogger().info("Player " + player.getName() + " has bypass permission, teleporting instantly to " + worldName);
             performTeleport(player, worldName);
@@ -46,14 +46,15 @@ public class TeleportManager implements org.bukkit.event.Listener { // Implement
             // Attempt case-sensitive lookup if lowercase failed
             targetWorld = Bukkit.getWorld(worldName); // Use original case provided
              if (targetWorld == null) {
-                 player.sendMessage(ChatColor.RED + "World \'" + worldName + "\' not found or not loaded.");
+                 player.sendMessage(ChatColor.RED + "World '" + worldName + "' not found or not loaded.");
                  return;
              }
              // If found case-sensitively, update worldName to the correct case for consistency
              worldName = targetWorld.getName();
         }
-        final String finalWorldName = worldName; // Final variable for runnable
-        final World finalTargetWorld = targetWorld; // Final variable for runnable
+        // Make variables effectively final for lambda
+        final String finalWorldName = worldName;
+        final World finalTargetWorld = targetWorld;
 
         player.sendMessage(ChatColor.YELLOW + "Teleporting to " + finalWorldName + " in " + COUNTDOWN_SECONDS + " seconds... Don't move!");
         initialLocations.put(playerUUID, player.getLocation()); // Store initial location
@@ -75,7 +76,7 @@ public class TeleportManager implements org.bukkit.event.Listener { // Implement
                     countdown--;
                 } else {
                     // Countdown finished, perform teleport
-                    performTeleport(player, finalWorldName);
+                    performTeleport(player, finalWorldName); // Use finalWorldName
                     cancel(); // Stop this runnable
                     activeTeleports.remove(playerUUID);
                     initialLocations.remove(playerUUID);
@@ -99,56 +100,90 @@ public class TeleportManager implements org.bukkit.event.Listener { // Implement
         }
     }
 
-    // Actual teleport logic (extracted from TravelCommand)
+    // Actual teleport logic
     private void performTeleport(Player player, String worldName) {
         World targetWorld = Bukkit.getWorld(worldName);
         if (targetWorld == null) {
-            player.sendMessage(ChatColor.RED + "Error: World \'" + worldName + "\' became unavailable.");
-            plugin.getLogger().severe("Failed to perform teleport for " + player.getName() + ": World \'" + worldName + "\' is null.");
+            player.sendMessage(ChatColor.RED + "Error: World '" + worldName + "' became unavailable.");
+            plugin.getLogger().severe("Failed to perform teleport for " + player.getName() + ": World '" + worldName + "' is null.");
             return;
         }
 
         String worldNameLower = worldName.toLowerCase();
-        Map<String, Location> customSpawnPoints = plugin.getCustomSpawnPoints();
+        Map<String, Location> customSpawnPoints = plugin.getCustomSpawnPoints(); // Get fresh copy
 
-        Location targetLocation;
+        Location targetLocation = null;
 
         // --- Start: Check for last known location ---
         Location lastLocation = plugin.getLocationManager().getLastLocation(player, worldName);
         if (lastLocation != null) {
+            // Ensure the world is correctly set on the last location object
+            if (lastLocation.getWorld() == null || !lastLocation.getWorld().equals(targetWorld)) {
+                 plugin.getLogger().warning("Last location for player " + player.getName() + " in world " + worldName + " had incorrect/null world. Setting to target world.");
+                 lastLocation.setWorld(targetWorld);
+            }
             targetLocation = lastLocation;
-            plugin.getLogger().info("Using last known location for player " + player.getName() + " in world " + worldName);
+            plugin.getLogger().info("Using last known location for player " + player.getName() + " in world " + worldName + ": " + targetLocation.toString());
         } else {
+            plugin.getLogger().info("No last location found for player " + player.getName() + " in world " + worldName + ". Checking custom spawns.");
             // --- Fallback to custom spawn or default spawn ---
             if (customSpawnPoints.containsKey(worldNameLower)) {
-                targetLocation = customSpawnPoints.get(worldNameLower).clone();
-                targetLocation.setWorld(targetWorld); // Ensure world is set
-                plugin.getLogger().info("Using custom spawn point for world: " + worldNameLower + " for player " + player.getName());
+                Location customSpawn = customSpawnPoints.get(worldNameLower).clone();
+                // Ensure the world is set correctly on the custom spawn location object
+                if (customSpawn.getWorld() == null || !customSpawn.getWorld().equals(targetWorld)) {
+                    plugin.getLogger().info("Setting world on custom spawn point for: " + worldNameLower);
+                    customSpawn.setWorld(targetWorld);
+                } else {
+                    plugin.getLogger().info("Custom spawn point already had correct world set for: " + worldNameLower);
+                }
+                targetLocation = customSpawn;
+                plugin.getLogger().info("Using custom spawn point for world: " + worldNameLower + " for player " + player.getName() + ": " + targetLocation.toString());
             } else {
+                plugin.getLogger().info("No custom spawn point found for world: " + worldNameLower + ". Using default world spawn.");
                 Location defaultSpawn = targetWorld.getSpawnLocation();
                 targetLocation = LocationUtils.findTrulySafeLocation(defaultSpawn, 10);
                 if (targetLocation == null) {
-                    plugin.getLogger().warning("Could not find a truly safe location near spawn in \'" + targetWorld.getName() + "\' for player " + player.getName() + ". Using default spawn directly.");
+                    plugin.getLogger().warning("Could not find a truly safe location near spawn in '" + targetWorld.getName() + "' for player " + player.getName() + ". Using default spawn directly.");
                     targetLocation = defaultSpawn.clone().add(0.5, 0, 0.5); // Center on block
                 } else {
-                    plugin.getLogger().info("Found safe location near spawn for world: " + worldNameLower + " for player " + player.getName());
+                    plugin.getLogger().info("Found safe location near spawn for world: " + worldNameLower + " for player " + player.getName() + ": " + targetLocation.toString());
+                }
+                // Ensure world is set on the default/safe location
+                if (targetLocation.getWorld() == null) {
+                     targetLocation.setWorld(targetWorld);
                 }
             }
         }
         // --- End: Location logic ---
 
-        // Ensure the location's world is set correctly before teleporting
-        if (targetLocation.getWorld() == null) {
+        // Final check: Ensure the location's world is set correctly before teleporting
+        if (targetLocation == null) {
+             player.sendMessage(ChatColor.RED + "Error: Could not determine a valid teleport location.");
+             plugin.getLogger().severe("Failed to determine targetLocation for player " + player.getName() + " teleporting to " + worldName);
+             return;
+        }
+        if (targetLocation.getWorld() == null || !targetLocation.getWorld().equals(targetWorld)) {
+            plugin.getLogger().warning("Final target location had incorrect/null world. Forcing target world: " + targetWorld.getName());
             targetLocation.setWorld(targetWorld);
         }
+
+        // Make variables effectively final for lambda
+        final Location finalTargetLocation = targetLocation;
+        final String finalWorldName = worldName; // Need worldName in lambda too
 
          // Save the player's current location BEFORE teleporting
         plugin.getLocationManager().saveLastLocation(player);
 
-        // Perform teleportation (consider using PaperMC's async teleport if available/needed)
-        player.teleport(targetLocation);
-        player.sendMessage(ChatColor.GREEN + "Teleported to " + targetWorld.getName() + "!");
-        plugin.getLogger().info("Successfully teleported player " + player.getName() + " to " + worldName);
+        // Perform teleportation using async teleport
+        player.teleportAsync(finalTargetLocation).thenAccept(success -> {
+            if (success) {
+                player.sendMessage(ChatColor.GREEN + "Teleported to " + finalWorldName + "!"); // Use finalWorldName
+                plugin.getLogger().info("Successfully teleported player " + player.getName() + " to " + finalWorldName + " at " + finalTargetLocation.toString()); // Use final vars
+            } else {
+                player.sendMessage(ChatColor.RED + "Teleport failed for an unknown reason.");
+                plugin.getLogger().warning("Teleport failed for player " + player.getName() + " to " + finalWorldName + " using teleportAsync."); // Use finalWorldName
+            }
+        });
 
         // Note: Inventory handling and world settings application are done by PlayerListener on PlayerChangedWorldEvent
     }

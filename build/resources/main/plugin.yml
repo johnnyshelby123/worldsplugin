@@ -1,5 +1,5 @@
 name: TravellerPlus
-version: 1.3 # Increment version for sign protection
+version: 1.4 # Increment version for spawn command
 main: com.travelplus.Main
 api-version: "1.21"
 description: Allows players to travel between configured worlds, create new worlds, use protected travel signs, and manage inventories.
@@ -21,6 +21,10 @@ commands:
     description: Gives the player a special sign to travel to a specified world.
     usage: /<command> <world_name>
     permission: travellerplus.gettravelsign
+  spawn: # New command for spawn world
+    description: Teleports the player to the configured spawn world.
+    usage: /<command>
+    permission: travellerplus.spawn
 permissions:
   travellerplus.travel:
     description: Allows usage of the /travel command.
@@ -34,6 +38,9 @@ permissions:
   travellerplus.gettravelsign:
     description: Allows usage of the /gettravelsign command.
     default: op
+  travellerplus.spawn: # Permission for /spawn
+    description: Allows usage of the /spawn command.
+    default: true # Allow by default, can be restricted by server admins
   travellerplus.countdown.bypass:
     description: Allows instant teleportation without the countdown.
     default: op
